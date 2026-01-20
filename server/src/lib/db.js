@@ -1,9 +1,25 @@
-import {PrismaClient} from '@prisma/client';
+import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+import pg from "pg";
+import dotenv from "dotenv";
 
-const globalForPrisma = global
+dotenv.config();
 
-const prisma = new PrismaClient();
+// Parse connection string manually
+const connString = process.env.DATABASE_URL;
+const url = new URL(connString);
 
-if (process.env.NODE_ENV === 'production') globalForPrisma.prisma = prisma;
+const pool = new pg.Pool({
+  user: url.username,
+  password: url.password,
+  host: url.hostname,
+  port: parseInt(url.port || "5432"),
+  database: url.pathname.slice(1),
+  ssl: url.searchParams.has("sslmode"),
+});
 
-export default prisma;
+const adapter = new PrismaPg(pool);
+
+export const db = new PrismaClient({
+  adapter,
+});
